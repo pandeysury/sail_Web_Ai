@@ -7,6 +7,7 @@ interface ChatSectionProps {
   clientId: string
   convId: string
   openDoc: (ref: { url: string; title: string }) => void
+  onNewMessage: (msg: string) => void;
 }
 
 interface Reference {
@@ -22,7 +23,7 @@ interface Message {
 
 const md = new showdown.Converter({ simplifiedAutoLink: true, tables: true, emoji: true })
 
-export default function ChatSection({ clientId, convId, openDoc }: ChatSectionProps) {
+export default function ChatSection({ clientId, convId, openDoc, onNewMessage }: ChatSectionProps) {
   const [messages, setMessages] = useState<Message[]>([])
   const [input, setInput] = useState('')
   const [loading, setLoading] = useState(false)
@@ -31,20 +32,99 @@ export default function ChatSection({ clientId, convId, openDoc }: ChatSectionPr
     loadHistory()
   }, [convId])
 
-  async function loadHistory() {
-    setMessages([])
-    setLoading(true)
-    try {
-      const res = await fetch(`/api/history?conversation_id=${convId}&client_id=${clientId}`)
-      if (!res.ok) throw new Error('Failed to fetch history')
-      const data = await res.json()
-      if (Array.isArray(data)) setMessages(data)
-    } catch (err) {
-      console.error('History load error', err)
-    } finally {
-      setLoading(false)
+  // async function loadHistory() {
+  //   setMessages([]);
+  //   setLoading(true);
+  //   try {
+  //     const res = await fetch(`/api/history?conversation_id=${convId}&client_id=${clientId}`);
+  //     if (!res.ok) return;
+
+  //     const data = await res.json();
+  //     if (Array.isArray(data) && data.length > 0) {
+  //       const parsed: Message[] = data.map((m: any) => {
+  //         if (m.role === 'assistant' && m.content?.startsWith('[REFS]')) {
+  //           try {
+  //             return { role: 'assistant', content: '', references: JSON.parse(m.content.slice(6)) };
+  //           } catch {
+  //             return { role: 'assistant', content: m.content };
+  //           }
+  //         }
+  //         return {
+  //           role: m.role,
+  //           content: m.role === 'assistant' ? md.makeHtml(m.content) : m.content,
+  //           references: m.references,
+  //         };
+  //       });
+  //       setMessages(parsed);
+  //       console.log(parsed, 'parsed');
+  //       if (messages.length === 0) {
+  //         const firstRef = parsed.find(m => m.references?.length)?.references?.[0];
+  //         if (firstRef) openDoc(firstRef);
+  //       }
+
+  //     }
+  //   } catch (err) {
+  //     console.error('History load failed:', err);
+  //   } finally {
+  //     setLoading(false);
+  //   }
+  // } 
+async function loadHistory() {
+  setMessages([]);
+  setLoading(true);
+
+  try {
+    const res = await fetch(`/api/history?conversation_id=${convId}&client_id=${clientId}`);
+    if (!res.ok) return;
+
+    const data = await res.json();
+
+    if (Array.isArray(data) && data.length > 0) {
+      const parsed: Message[] = data.map((m: any) => {
+
+        // --------- FIX: Handle [REFS] with HTML parsing ---------
+        if (m.role === "assistant" && m.content?.startsWith("[REFS]")) {
+          const html = m.content.slice(6); // remove “[REFS]”
+
+          // Parse HTML into DOM
+          const parser = new DOMParser();
+          const doc = parser.parseFromString(html, "text/html");
+          const links = doc.querySelectorAll("a.ref-link");
+
+          // Extract refs from <a> tags
+          const refs: Reference[] = Array.from(links).map(a => ({
+            url: a.getAttribute("data-url") || "",
+            title: a.getAttribute("data-title") || "",
+          }));
+
+          return { role: "assistant", content: "", references: refs };
+        }
+
+        // Normal assistant/user message
+        return {
+          role: m.role,
+          content: m.role === "assistant" ? md.makeHtml(m.content) : m.content,
+          references: m.references,
+        };
+      });
+
+      setMessages(parsed);
+      console.log(parsed, "parsed");
+
+      // --------- Auto open reference for history & conv switching ---------
+      if (parsed.length > 0) {
+        const firstRef = parsed.find(m => m.references?.length)?.references?.[0];
+        if (firstRef) openDoc(firstRef);
+      }
     }
+
+  } catch (err) {
+    console.error("History load failed:", err);
+  } finally {
+    setLoading(false);
   }
+}
+
 
   async function sendMessage(e: React.FormEvent) {
     e.preventDefault()
@@ -53,6 +133,8 @@ export default function ChatSection({ clientId, convId, openDoc }: ChatSectionPr
     const q = input.trim()
     const userMsg: Message = { role: 'user', content: q }
     setMessages((prev) => [...prev, userMsg])
+    setLoading(true)
+    onNewMessage(q)
     setInput('')
 
     try {
@@ -70,13 +152,14 @@ export default function ChatSection({ clientId, convId, openDoc }: ChatSectionPr
       }
       
       setMessages((prev) => [...prev, aiMsg])
-      
+      setLoading(false)
       // Auto-open first reference if available
       if (data.references && data.references.length > 0) {
         openDoc(data.references[0])
       }
       
-      console.log('🤖 Ask response:', data.references)
+      //console.log('🤖 Ask response:', data.references)
+
     } catch (err) {
       console.error('Ask error', err)
     }
@@ -256,13 +339,57 @@ export default function ChatSection({ clientId, convId, openDoc }: ChatSectionPr
         .messages::-webkit-scrollbar-thumb:hover {
           background: #a8a8a8;
         }
+        .msg.ai.typing {
+          background: #f3f4f6;
+          padding: 12px 16px;
+          width: fit-content;
+          border-radius: 8px;
+          display: flex;
+          align-items: center;
+        }
+
+        .dots {
+          display: flex;
+          gap: 6px;
+        }
+
+        .dots span {
+          width: 8px;
+          height: 8px;
+          background: #5b6cf2;
+          border-radius: 50%;
+          display: inline-block;
+          animation: bounce 1.4s infinite ease-in-out;
+        }
+
+        .dots span:nth-child(1) {
+          animation-delay: 0s;
+        }
+
+        .dots span:nth-child(2) {
+          animation-delay: 0.2s;
+        }
+
+        .dots span:nth-child(3) {
+          animation-delay: 0.4s;
+        }
+
+        @keyframes bounce {
+          0%, 80%, 100% {
+            transform: scale(0.4);
+            opacity: 0.6;
+          }
+          40% {
+            transform: scale(1);
+            opacity: 1;
+          }
+        }
       `}</style>
 
       <section className="chat glass">
         <h2 className="page-title">Chat To SMS Docs</h2>
 
         <ul className="messages">
-          {loading && <li className="msg ai">Loading...</li>}
           {messages.map((m, i) => (
             <li key={i} className={`msg ${m.role === 'user' ? 'u' : 'ai'}`}>
               <div dangerouslySetInnerHTML={{ __html: m.content }} />
@@ -290,6 +417,14 @@ export default function ChatSection({ clientId, convId, openDoc }: ChatSectionPr
               )}
             </li>
           ))}
+          {/* {loading && <li className="msg ai">...</li>} */}
+          {loading && (
+            <li className="msg ai typing">
+              <div className="dots">
+                <span></span><span></span><span></span>
+              </div>
+            </li>
+          )}
         </ul>
 
         <form className="composer glass" onSubmit={sendMessage}>
