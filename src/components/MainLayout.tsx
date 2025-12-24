@@ -13,6 +13,8 @@ export default function MainLayout() {
   const [doc, setDoc] = useState<{ url: string; title: string } | null>(null);
   const [showHistory, setShowHistory] = useState(false);
   const [threads, setThreads] = useState<{ id: string; title: string }[]>([]);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [threadToDelete, setThreadToDelete] = useState<string | null>(null);
   const STORAGE_PREFIX = `${clientId}_`;
 
   /* ---------- all your original helpers ---------- */
@@ -29,21 +31,36 @@ export default function MainLayout() {
     const list = ids.map((id) => ({
       id,
       title: localStorage.getItem(`${STORAGE_PREFIX}${id}_title`) || 'Untitled',
-    }));
+    })).filter(thread => thread.title !== 'Untitled');
     if (!ids.includes(convId)) {
-      list.push({ id: convId, title: localStorage.getItem(`${STORAGE_PREFIX}${convId}_title`) || 'Untitled' });
+      const currentTitle = localStorage.getItem(`${STORAGE_PREFIX}${convId}_title`) || 'Untitled';
+      if (currentTitle !== 'Untitled') {
+        list.push({ id: convId, title: currentTitle });
+      }
     }
     setThreads(list);
   };
 
   const deleteThread = (id: string) => {
-    if (!confirm('Delete this conversation?')) return;
+    setThreadToDelete(id);
+    setShowDeleteModal(true);
+  };
+
+  const confirmDelete = () => {
+    if (!threadToDelete) return;
     const ids = JSON.parse(localStorage.getItem(`${STORAGE_PREFIX}THREADS`) || '[]');
-    const filtered = ids.filter((tid: string) => tid !== id);
+    const filtered = ids.filter((tid: string) => tid !== threadToDelete);
     localStorage.setItem(`${STORAGE_PREFIX}THREADS`, JSON.stringify(filtered));
-    localStorage.removeItem(`${STORAGE_PREFIX}${id}_title`);
-    if (id === convId) newChat();
+    localStorage.removeItem(`${STORAGE_PREFIX}${threadToDelete}_title`);
+    if (threadToDelete === convId) newChat();
     else loadThreads();
+    setShowDeleteModal(false);
+    setThreadToDelete(null);
+  };
+
+  const cancelDelete = () => {
+    setShowDeleteModal(false);
+    setThreadToDelete(null);
   };
 
   const switchConversation = (id: string) => {
@@ -150,6 +167,28 @@ export default function MainLayout() {
           )}
         </nav>
       </div>
+
+      {/* Delete Confirmation Modal */}
+      {showDeleteModal && (
+        <div className="modal-overlay">
+          <div className="modal-card">
+            <div className="modal-header">
+              <span>🗑️ Delete Conversation</span>
+            </div>
+            <div className="modal-body">
+              <p>Are you sure you want to delete this conversation? This action cannot be undone.</p>
+            </div>
+            <div className="modal-actions">
+              <button className="cancel-button" onClick={cancelDelete}>
+                Cancel
+              </button>
+              <button className="delete-button" onClick={confirmDelete}>
+                Delete
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

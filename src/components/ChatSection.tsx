@@ -1,7 +1,7 @@
 // src/components/ChatSection/ChatSection.tsx
 import { useEffect, useState } from 'react';
 import showdown from 'showdown';
-import './ChatSection.css';          // <-- pull in the external stylesheet
+import './ChatSection.css';
 
 interface ChatSectionProps {
   clientId: string;
@@ -134,13 +134,17 @@ export default function ChatSection({
 
   return (
     <section className="chat glass">
-      <h2 className="page-title">Chat To SMS Docs</h2>
+      <h2 className="chat-title">Chat To SMS Docs</h2>
 
       <ul className="messages">
         {messages.map((m, i) => (
           <li key={i} className={`msg ${m.role === 'user' ? 'u' : 'ai'}`}>
-            <div dangerouslySetInnerHTML={{ __html: m.content }} />
+            {/* Message content wrapper */}
+            <div className="msg-content">
+              <div dangerouslySetInnerHTML={{ __html: m.content }} />
+            </div>
 
+            {/* References section - outside content wrapper for full width */}
             {m.role === 'assistant' && m.references && m.references.length > 0 && (
               <div className="references">
                 <strong>References</strong>
