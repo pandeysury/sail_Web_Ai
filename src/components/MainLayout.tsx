@@ -3,6 +3,8 @@ import { useState, useEffect } from 'react';
 import NavBar from './NavBar';
 import ChatSection from './ChatSection';
 import Viewer from './Viewer';
+import Dashboard from './Dashboard';
+import { BarChart3 } from 'lucide-react';
 import './../assets/style.css';          // same CSS you already had
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
@@ -15,6 +17,7 @@ export default function MainLayout() {
   const [threads, setThreads] = useState<{ id: string; title: string }[]>([]);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [threadToDelete, setThreadToDelete] = useState<string | null>(null);
+  const [showDashboard, setShowDashboard] = useState(false);
   const STORAGE_PREFIX = `${clientId}_`;
 
   /* ---------- all your original helpers ---------- */
@@ -142,6 +145,18 @@ export default function MainLayout() {
           <span>Chat History</span>
           <button onClick={() => setShowHistory(false)} className="history-close">X</button>
         </header>
+        
+        <button 
+          className="dashboard-button"
+          onClick={() => {
+            setShowDashboard(true);
+            setShowHistory(false);
+          }}
+        >
+          <BarChart3 size={16} />
+          View Dashboard
+        </button>
+        
         <nav id="thread-list" className="thread-list">
           {threads.length === 0 ? (
             <p className="no-history">No history yet</p>
@@ -188,6 +203,14 @@ export default function MainLayout() {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Dashboard Modal */}
+      {showDashboard && (
+        <Dashboard 
+          clientId={clientId} 
+          onClose={() => setShowDashboard(false)} 
+        />
       )}
     </div>
   );

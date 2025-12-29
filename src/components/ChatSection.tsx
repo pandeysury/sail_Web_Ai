@@ -1,6 +1,7 @@
 // src/components/ChatSection/ChatSection.tsx
 import { useEffect, useState } from 'react';
 import showdown from 'showdown';
+import FeedbackButtons from './FeedbackButtons';
 import './ChatSection.css';
 
 interface ChatSectionProps {
@@ -19,6 +20,7 @@ interface Message {
   role: string;
   content: string;
   references?: Reference[];
+  question?: string; // Store the original question for feedback
 }
 
 const md = new showdown.Converter({
@@ -112,6 +114,7 @@ export default function ChatSection({
           role: 'assistant',
           content: `Error: ${errorData.detail || 'Something went wrong'}`,
           references: [],
+          question: q,
         };
         setMessages((prev) => [...prev, aiMsg]);
         setLoading(false);
@@ -123,6 +126,7 @@ export default function ChatSection({
         role: 'assistant',
         content: md.makeHtml(data.answer || 'No answer received'),
         references: data.references || [],
+        question: q,
       };
       setMessages((prev) => [...prev, aiMsg]);
       setLoading(false);
@@ -164,6 +168,16 @@ export default function ChatSection({
                   ))}
                 </div>
               </div>
+            )}
+
+            {/* Feedback buttons for AI responses */}
+            {m.role === 'assistant' && m.question && (
+              <FeedbackButtons
+                conversationId={convId}
+                clientId={clientId}
+                question={m.question}
+                answer={m.content.replace(/<[^>]*>/g, '')} // Strip HTML for plain text
+              />
             )}
           </li>
         ))}
