@@ -1,31 +1,4 @@
-// export default function NavBar({
-//   onNewChat,
-//   onHistoryClick,
-//   clientLabel,
-// }: {
-//   onNewChat: () => void
-//   onHistoryClick: () => void
-//   clientLabel: string
-// }) {
-//   return (
-//     <header className="nav glass">
-//       <div className="brand">
-//         <span className="logo">⚓</span> Safe Lanes
-//       </div>
-//       <div className="nav-actions">
-//         <button onClick={onHistoryClick} className="action">
-//           <i className="i-history"></i>
-//           <span>History</span>
-//         </button>
-//         <button onClick={onNewChat} className="action">
-//           <i className="i-plus"></i>
-//           <span>New</span>
-//         </button>
-//         <span className="client-badge glass">Client: {clientLabel}</span>
-//       </div>
-//     </header>
-//   )
-// }
+
 export default function NavBar({
   clientLabel,
   onHistoryClick,
