@@ -29,6 +29,13 @@ const md = new showdown.Converter({
   emoji: true,
 });
 
+// Robust HTML stripping function
+function stripHtml(html: string): string {
+  const tempDiv = document.createElement('div');
+  tempDiv.innerHTML = html;
+  return tempDiv.textContent || tempDiv.innerText || '';
+}
+
 export default function ChatSection({
   clientId,
   convId,
@@ -176,7 +183,7 @@ export default function ChatSection({
                 conversationId={convId}
                 clientId={clientId}
                 question={m.question}
-                answer={m.content.replace(/<[^>]*>/g, '')} // Strip HTML for plain text
+                answer={stripHtml(m.content)} // Strip HTML for plain text
               />
             )}
           </li>
