@@ -1,0 +1,10 @@
+version: '3.8'
+services:
+  sail-frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile.prod
+    container_name: sail-frontend-app
+    restart: unless-stopped
+    ports:
+      - "3001:80"
