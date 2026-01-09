@@ -5,7 +5,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile.prod
-    container_name: sail-frontend-prod
+    container_name: sail-frontend-app
     ports:
       - "3001:3001"
     environment:
